@@ -9,10 +9,10 @@ class AJ_DMD:
     def __init__(self):        
         self.aj_trig=aj.EXT_TRIGGER_OUTPUT_1
         self.frametime = 10
-        self.Connect_DMD()
         self.timeout=20
         self.custom_xy = False
-        
+        self.Connect_DMD()
+
     def Connect_DMD(self):
         self.sequenceID = 1
         self.ajs = aj.HostSystem()#build object
@@ -24,8 +24,18 @@ class AJ_DMD:
     def Disconnect_DMD(self):
         self.ajs.StopSystem()
         
+    def Check_Connection(self):
+        return self.ajs.IsConnected()
+    
     def Get_Seq_RunState(self):
         return self.ajs.GetDeviceState(self.dmdIndex).RunState()
+    
+    def Run(self):
+        self.driver.StartSequence(self.sequenceID,self.dmdIndex)
+    def Pause(self):
+        self.driver.PauseSequence()
+    def Stop(self):
+        self.driver.StopSequence()
         
     def Init_Project(self):
         self.project = aj.Project("DMD_Stream")#create project
@@ -64,7 +74,7 @@ class AJ_DMD:
         dmdSeqItemStartedToExtTrigOut = aj.TriggerRule()
         dmdSeqItemStartedToExtTrigOut.AddTriggerFromDevice(aj.TriggerRulePair(self.dmdIndex, aj.FRAME_STARTED))
         dmdSeqItemStartedToExtTrigOut.SetTriggerToDevice(aj.TriggerRulePair(controllerIndex, self.aj_trig))
-        self.project.AddTriggerRule(dmdSeqItemStartedToExtTrigOut)   
+        self.project.AddTriggerRule(dmdSeqItemStartedToExtTrigOut)  
         self.imageWidth = self.ajs.GetProject().Components()[self.dmdIndex].NumColumns()
         self.imageHeight = self.ajs.GetProject().Components()[self.dmdIndex].NumRows()
         self.deviceType = self.ajs.GetProject().Components()[self.dmdIndex].DeviceType().HardwareType()
@@ -82,9 +92,9 @@ class AJ_DMD:
                     imgp=(np.zeros(shape=(self.imageWidth,self.imageHeight))).astype(np.uint8)
                     temp = cv2.resize(img,(self.X,self.Y),interpolation=cv2.INTER_AREA)#resize it to the size of DMD
                     imgp[int((912-self.Y)//2):912-int((912-self.Y)//2),int((1140-self.X)//2):1140-int((1140-self.X)//2)]=temp
-                else: 
+                else:
                     imgp = cv2.resize(img,(912,1140),interpolation=cv2.INTER_AREA)#resize it to the size of DMD
-            else: 
+            else:
                 imgp = H[:,:,k].astype(int)
             npz=(255*np.array(imgp).astype(int)).astype(np.uint8)
             timg = np.ascontiguousarray(np.expand_dims(npz,axis=2)).astype(np.uint8)
@@ -97,4 +107,3 @@ class AJ_DMD:
             streamingFrame.SetStreamingImage(streamingImage)
             streamingSeqItem.AddFrame(streamingFrame)
             self.driver.AddStreamingSequenceItem(streamingSeqItem, self.dmdIndex)
-
